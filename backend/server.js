@@ -1,0 +1,11 @@
+require("dotenv").config();
+const express=require("express"),mongoose=require("mongoose"),path=require("path"),morgan=require("morgan"),cookieParser=require("cookie-parser"),jwt=require("jsonwebtoken");
+const app=express(),PORT=process.env.PORT||5001;
+app.use(express.urlencoded({extended:true}));app.use(express.json());app.use(cookieParser());app.use(morgan("dev"));
+app.use(express.static(path.join(__dirname,"../frontend/public")));
+app.set("view engine","ejs");app.set("views",path.join(__dirname,"../frontend/views"));
+app.use((req,res,next)=>{res.locals.currentUser=null;try{if(req.cookies?.token)res.locals.currentUser=jwt.verify(req.cookies.token,process.env.JWT_SECRET);}catch(e){}next();});
+app.get("/",(req,res)=>res.render("home"));
+app.use("/auth",require("./routes/authRoutes"));app.use("/donor",require("./routes/donorRoutes"));app.use("/blood",require("./routes/bloodRoutes"));app.use("/requests",require("./routes/requestRoutes"));app.use("/admin",require("./routes/adminRoutes"));
+app.use((req,res)=>res.status(404).render("error",{message:"Page not found."}));
+mongoose.connect(process.env.MONGO_URI).then(()=>{console.log("MongoDB connected");app.listen(PORT,()=>console.log(`Server running at http://localhost:${PORT}`));}).catch(e=>console.log("MongoDB connection error:",e));
